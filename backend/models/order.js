@@ -7,7 +7,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     finalTotal: DataTypes.FLOAT,
     promotionCode: DataTypes.STRING,
-    promotionId: DataTypes.INTEGER,
     status: {
       type: DataTypes.ENUM("pending", "confirmed", "shipped", "delivered", "cancelled"),
       defaultValue: "pending"

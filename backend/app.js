@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
+const session = require("express-session");
+const passport = require("passport");
+const setupDatabase = require("./config/dbSetup");
 require("dotenv").config();
 
 const app = express();
@@ -8,9 +11,46 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// DB
-const db = require("./models");
-db.sequelize.sync();
+// ================= SESSION & PASSPORT =================
+app.use(session({
+  secret: process.env.SESSION_SECRET || "secret-key",
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// ================= PASSPORT CONFIG =================
+require("./config/passport");
+
+// ================= DATABASE SETUP =================
+let db = null;
+let isReady = false;
+
+async function initializeDatabase() {
+  try {
+    // Setup database first
+    await setupDatabase();
+    
+    // Then initialize models
+    db = require("./models");
+    await db.sequelize.sync();
+    isReady = true;
+    console.log("✓ Database synchronized");
+  } catch (error) {
+    console.error("Database initialization error:", error.message);
+    isReady = false;
+  }
+}
+
+// Initialize database on startup
+initializeDatabase();
 
 // ================= UPLOAD =================
 
@@ -30,6 +70,14 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
 });
 
 app.use("/uploads", express.static("uploads"));
+
+// ================= DATABASE READY CHECK =================
+app.use((req, res, next) => {
+  if (!isReady) {
+    return res.status(503).json({ error: "Service initializing..." });
+  }
+  next();
+});
 
 // ================= ROUTES =================
 
