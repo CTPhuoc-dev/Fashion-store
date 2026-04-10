@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const ctrl = require("../controllers/product.controller");
+const ctrl = require("../controllers/category.controller");
 const auth = require("../middlewares/auth.middleware");
 
 router.get("/", ctrl.getAll);
